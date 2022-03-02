@@ -85,7 +85,7 @@ int pivot = 1;
 void compose_matrix(Matrix *m)
 {
     m->row_eff = temp[0];
-    m->col_eff = temp[0];
+    m->col_eff = temp[1];
     for (int i = 0; i < row_eff; i++)
     {
         for (int j = 0; j < col_eff; j++)
