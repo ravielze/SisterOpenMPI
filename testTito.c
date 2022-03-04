@@ -1,6 +1,7 @@
+#include <mpi.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <mpi.h>
 
 #define NMAX 100
 #define MATRIXNSEND 10002
@@ -82,36 +83,37 @@ void print_matrix(Matrix *m)
 int temp[MATRIXNSEND];
 int pivot = 1;
 
-void compose_matrix(Matrix *m)
-{
-    m->row_eff = temp[0];
-    m->col_eff = temp[1];
-    for (int i = 0; i < row_eff; i++)
-    {
-        for (int j = 0; j < col_eff; j++)
-        {
-            m->mat[i][j] = temp[pivot + (i * m->row_eff) + j + 1];
-        }
-    }
-}
+// void compose_matrix(Matrix *m)
+// {
+//     m->row_eff = temp[0];
+//     m->col_eff = temp[1];
+//     for (int i = 0; i < row_eff; i++)
+//     {
+//         for (int j = 0; j < col_eff; j++)
+//         {
+//             m->mat[i][j] = temp[pivot + (i * m->row_eff) + j + 1];
+//         }
+//     }
+// }
 
-void decompose_matrix(Matrix *m)
-{
-    for (int i = 0; i < MATRIXNSEND; i++)
-    {
-        temp[i] = 0;
-    }
-    temp[0] = m->row_eff;
-    temp[1] = m->col_eff;
+// void decompose_matrix(Matrix *m)
+// {
+//     for (int i = 0; i < MATRIXNSEND; i++)
+//     {
+//         temp[i] = 0;
+//     }
+//     temp[0] = m->row_eff;
+//     temp[1] = m->col_eff;
 
-    for (int i = 0; i < row_eff; i++)
-    {
-        for (int j = 0; j < col_eff; j++)
-        {
-            temp[pivot + (i * m->row_eff) + j + 1] = m->mat[i][j];
-        }
-    }
-}
+//     for (int i = 0; i < row_eff; i++)
+//     {
+//         for (int j = 0; j < col_eff; j++)
+//         {
+//             temp[pivot + (i * m->row_eff) + j + 1] = m->mat[i][j];
+//         }
+//     }
+// }
+
 
 /*
  * Procedure merge_array
@@ -149,6 +151,7 @@ void merge_array(int *n, int left, int mid, int right) {
 		n[iter_merged++] = arr_right[iter_right++];
 	} 
 }
+
 
 /* 
  * Procedure merge_sort
@@ -189,83 +192,101 @@ int main(int argc, char *argv[])
     int* myArray;
     int sizeMyArray=0;
 
-    if (rank == 0)
-    {
-        int inputRow, inputCol;
-        scanf("%d %d", &inputRow, &inputCol);
-        inputMatrix = input_matrix(inputRow, inputCol);
+    // if (rank == 0)
+    // {
+    //     int inputRow, inputCol;
+    //     scanf("%d %d", &inputRow, &inputCol);
+    //     inputMatrix = input_matrix(inputRow, inputCol);
 
-        int numTargets, targetRow, targetCol;
-        scanf("%d %d %d", &numTargets, &targetRow, &targetCol);
-        kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
+    //     int numTargets, targetRow, targetCol;
+    //     scanf("%d %d %d", &numTargets, &targetRow, &targetCol);
+    //     kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
 
-        for (int i = 0; i < numTargets; i++)
-        {
-            kernelMatrix[i] = input_matrix(targetRow, targetCol);
-        }
+    //     for (int i = 0; i < numTargets; i++)
+    //     {
+    //         kernelMatrix[i] = input_matrix(targetRow, targetCol);
+    //     }
 
-        // Bagian bagi-bagi kerjaan
-        int targetMatrixPerRank = numTargets / size;
-        int forEachSlave = targetMatrixPerRank;
-        int forMaster = numTargets - (targetMatrixPerRank * (size - 1));
-        // Jadi numTargets bakal dibagi bersama size
-        // Trus kerjaan per slave itu floornya, sedangkan kerjaan master sisanya
+    //     // Bagian bagi-bagi kerjaan
+    //     int targetMatrixPerRank = numTargets / size;
+    //     int forEachSlave = targetMatrixPerRank;
+    //     int forMaster = numTargets - (targetMatrixPerRank * (size - 1));
+    //     // Jadi numTargets bakal dibagi bersama size
+    //     // Trus kerjaan per slave itu floornya, sedangkan kerjaan master sisanya
 
-        for (int i = 1; i < size; i++)
-        {
-            decompose_matrix(&inputMatrix);
-            // kasih input matrix ke slavenya
-            MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD);
-            // kasih tau jumlah kerjaan ke slavenya
-            MPI_Send(&forEachSlave, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+    //     size = 4
+    //     1, 2, 3
+    //     for (int i = 1; i < size; i++)
+    //     {
+    //         decompose_matrix(&inputMatrix);
+    //         // kasih input matrix ke slavenya
+    //         MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD); //kasih kernel matrix
+    //         // kasih tau jumlah kerjaan ke slavenya
+    //         MPI_Send(&forEachSlave, 1, MPI_INT, i, 0, MPI_COMM_WORLD); //kasih banyak matriks inputan
 
-            for (int j = 0; j < forEachSlave; j++)
-            {
-                decompose_matrix(&(kernelMatrix[j + (i - 1) * forEachSlave + forMaster]));
-                // kasih tau matrix kernel kerjaan ke j ke slavenya
-                MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD);
-            }
-        }
+    //         for (int j = 0; j < forEachSlave; j++)// for loop untuk setiap matriks inputan
+    //         {
+    //             decompose_matrix(&(kernelMatrix[j + (i - 1) * forEachSlave + forMaster]));
+    //             // kasih tau matrix kernel kerjaan ke j ke slavenya
+    //             MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD);
+    //         }
+    //     }
 
-        for (int i = 0; i < forMaster; i++)
-        {
-            // Do kerjaan master
-            // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
-        }
-    }
-    else
-    {
-        // Dapetin matrix input dari master
-        MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
-        compose_matrix(&inputMatrix);
+    //     for (int i = 0; i < forMaster; i++)
+    //     {
+    //         // Do kerjaan master
+    //         // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
+    //     }
+    // }
+    // else
+    // {
+    //     // Dapetin matrix input dari master
+    //     MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+    //     compose_matrix(&inputMatrix);
 
-        int numTargets;
-        // minta jumlah kerjaan dari master
-        MPI_Recv(&numTargets, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
-        kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
+    //     int numTargets;
+    //     // minta jumlah kerjaan dari master
+    //     MPI_Recv(&numTargets, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+    //     kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
 
-        for (int i = 0; i < numTargets; i++)
-        {
-            // minta matrix kernel dari master
-            MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
-            compose_matrix(&(kernelMatrix[i]));
-        }
+    //     for (int i = 0; i < numTargets; i++)
+    //     {
+    //         // minta matrix kernel dari master
+    //         MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+    //         compose_matrix(&(kernelMatrix[i]));
+    //     }
 
-        for (int i = 0; i < numTargets; i++)
-        {
-            // Do kerjaan slave
-            // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
-        }
+    //     for (int i = 0; i < numTargets; i++)
+    //     {
+    //         // Do kerjaan slave
+    //         // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
+    //     }
+    // }
 
-        //TODO initate the value of myArray and sizeMyArray with the result of convolution. Array with one element i think.
-    }
+    //TODO initate the value of myArray and sizeMyArray with the result of convolution. Array with one element i think.
 
     /* Sorting Logic Starts From Here!1!1!1! */
     
     //variable to help
     int divisor = 2;
     int divisor_difference = 1;
+    sizeMyArray = 1;
+    myArray = (int *)malloc((sizeMyArray)*sizeof(int));
     int needToSend = 1;
+    
+    if (rank==0){
+        myArray[0] = 21;
+    }else if (rank==1){
+        myArray[0] = 17;
+    }else if (rank==2){
+        myArray[0] = 57;
+    }else if (rank==3){
+        myArray[0] = 20;
+    }else if (rank==4){
+        myArray[0] = 1;
+    }else if (rank==5){
+        myArray[0] = 100;
+    }
 
     // start process
     while (divisor <= nearestPowerOf2(size)){ //size oerlu dibkin jd 8
@@ -299,6 +320,7 @@ int main(int argc, char *argv[])
             }
         }else{
             int rankPartner = rank - divisor_difference;
+            // printf("rankPartner: %d\n", rankPartner);
             if (needToSend==1){
                 //send size of array
                 MPI_Send(&sizeMyArray, 1, MPI_INT, rankPartner, 1, MPI_COMM_WORLD);
@@ -311,6 +333,13 @@ int main(int argc, char *argv[])
         }
         divisor *= 2;
         divisor_difference *= 2;
+    }
+
+    printf("This is process: %d\n", rank);
+    if (rank==0){
+        for (int i=0; i<sizeMyArray; i++){
+            printf("%d\n", myArray[i]);
+        }
     }
 
     MPI_Finalize();
