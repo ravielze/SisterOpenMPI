@@ -270,22 +270,28 @@ int main(int argc, char *argv[])
     //variable to help
     int divisor = 2;
     int divisor_difference = 1;
-    sizeMyArray = 1;
+    sizeMyArray = 2;
     myArray = (int *)malloc((sizeMyArray)*sizeof(int));
     int needToSend = 1;
     
     if (rank==0){
-        myArray[0] = 21;
+        myArray[0] = -10;
+        myArray[1] = 21;
     }else if (rank==1){
         myArray[0] = 17;
+        myArray[1] = 101;
     }else if (rank==2){
         myArray[0] = 57;
+        myArray[1] = 73;
     }else if (rank==3){
         myArray[0] = 20;
+        myArray[1] = 2000;
     }else if (rank==4){
-        myArray[0] = 1;
+        myArray[0] = -1;
+        myArray[1] = 1;
     }else if (rank==5){
-        myArray[0] = 100;
+        myArray[0] = 2;
+        myArray[1] = 100;
     }
 
     // start process
@@ -301,22 +307,36 @@ int main(int argc, char *argv[])
                 int arrayOfInt[sizeOfRecvArray];
                 MPI_Recv(arrayOfInt, sizeOfRecvArray, MPI_INT, rankPartner, 2, MPI_COMM_WORLD, 0); //tag 2 only for differentiate this message to get the array
 
-                //unite myArray with received array
+                //merge while retain the sort
+                int totalSize = sizeMyArray + sizeOfRecvArray;
+                int idxMyArray = 0; int idxRecvArray = 0;
                 int* tempArray;
-                tempArray = (int *)malloc((sizeMyArray + sizeOfRecvArray)*sizeof(int));
-                for (int i=0; i<sizeMyArray; i++){
-                    tempArray[i] = myArray[i];
+                tempArray = (int *)malloc((totalSize)*sizeof(int));
+                
+                for (int i=0; i<totalSize; i++){
+                    if (myArray[idxMyArray] <= arrayOfInt[idxRecvArray]){
+                        if (idxMyArray < sizeMyArray){
+                            tempArray[i] = myArray[idxMyArray];
+                            idxMyArray += 1;
+                        }else{
+                            tempArray[i] = arrayOfInt[idxRecvArray];
+                            idxRecvArray += 1;
+                        }
+                    }else{
+                        if (idxRecvArray < sizeOfRecvArray){
+                            tempArray[i] = arrayOfInt[idxRecvArray];
+                            idxRecvArray += 1;
+                        }else{
+                            tempArray[i] = myArray[idxMyArray];
+                            idxMyArray += 1;
+                        }
+                    }
                 }
-                for (int i=0; i<sizeOfRecvArray; i++){
-                    tempArray[i+sizeMyArray] = arrayOfInt[i];
-                }
-                free(myArray);
-                sizeMyArray = sizeMyArray + sizeOfRecvArray;
-                myArray = tempArray;
-                tempArray = NULL;
 
-                //sort array
-                merge_sort(myArray, 0, sizeMyArray-1);
+                free(myArray);
+                myArray = tempArray;
+                sizeMyArray = totalSize;
+                tempArray = NULL;
             }
         }else{
             int rankPartner = rank - divisor_difference;
@@ -344,3 +364,21 @@ int main(int argc, char *argv[])
 
     MPI_Finalize();
 }
+
+// old logic
+// //unite myArray with received array
+                // int* tempArray;
+                // tempArray = (int *)malloc((sizeMyArray + sizeOfRecvArray)*sizeof(int));
+                // for (int i=0; i<sizeMyArray; i++){
+                //     tempArray[i] = myArray[i];
+                // }
+                // for (int i=0; i<sizeOfRecvArray; i++){
+                //     tempArray[i+sizeMyArray] = arrayOfInt[i];
+                // }
+                // free(myArray);
+                // sizeMyArray = sizeMyArray + sizeOfRecvArray;
+                // myArray = tempArray;
+                // tempArray = NULL;
+
+                // //sort array
+                // merge_sort(myArray, 0, sizeMyArray-1);

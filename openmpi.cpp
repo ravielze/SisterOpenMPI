@@ -256,9 +256,9 @@ int main(int argc, char *argv[])
             // Do kerjaan slave
             // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
         }
-
-        //TODO initate the value of myArray and sizeMyArray with the result of convolution. Array with one element i think.
     }
+
+    //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
 
     /* Sorting Logic Starts From Here!1!1!1! */
     
@@ -268,7 +268,7 @@ int main(int argc, char *argv[])
     int needToSend = 1;
 
     // start process
-    while (divisor <= nearestPowerOf2(size)){ //size oerlu dibkin jd 8
+    while (divisor <= nearestPowerOf2(size)){   //to handle count of nodes is not power of 2 
         if (rank % divisor == 0){
             int rankPartner = rank + divisor_difference;
             if (rankPartner < size){    //check condition is the partner exist
@@ -280,22 +280,36 @@ int main(int argc, char *argv[])
                 int arrayOfInt[sizeOfRecvArray];
                 MPI_Recv(arrayOfInt, sizeOfRecvArray, MPI_INT, rankPartner, 2, MPI_COMM_WORLD, 0); //tag 2 only for differentiate this message to get the array
 
-                //unite myArray with received array
+                //merge while retain the sort
+                int totalSize = sizeMyArray + sizeOfRecvArray;
+                int idxMyArray = 0; int idxRecvArray = 0;
                 int* tempArray;
-                tempArray = (int *)malloc((sizeMyArray + sizeOfRecvArray)*sizeof(int));
-                for (int i=0; i<sizeMyArray; i++){
-                    tempArray[i] = myArray[i];
+                tempArray = (int *)malloc((totalSize)*sizeof(int));
+                
+                for (int i=0; i<totalSize; i++){
+                    if (myArray[idxMyArray] <= arrayOfInt[idxRecvArray]){
+                        if (idxMyArray < sizeMyArray){  //handle case index out of bound
+                            tempArray[i] = myArray[idxMyArray];
+                            idxMyArray += 1;
+                        }else{
+                            tempArray[i] = arrayOfInt[idxRecvArray];
+                            idxRecvArray += 1;
+                        }
+                    }else{
+                        if (idxRecvArray < sizeOfRecvArray){    //handle case index out of bound
+                            tempArray[i] = arrayOfInt[idxRecvArray];
+                            idxRecvArray += 1;
+                        }else{
+                            tempArray[i] = myArray[idxMyArray];
+                            idxMyArray += 1;
+                        }
+                    }
                 }
-                for (int i=0; i<sizeOfRecvArray; i++){
-                    tempArray[i+sizeMyArray] = arrayOfInt[i];
-                }
-                free(myArray);
-                sizeMyArray = sizeMyArray + sizeOfRecvArray;
-                myArray = tempArray;
-                tempArray = NULL;
 
-                //sort array
-                merge_sort(myArray, 0, sizeMyArray-1);
+                free(myArray);
+                myArray = tempArray;
+                sizeMyArray = totalSize;
+                tempArray = NULL;
             }
         }else{
             int rankPartner = rank - divisor_difference;
