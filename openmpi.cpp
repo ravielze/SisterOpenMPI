@@ -327,5 +327,22 @@ int main(int argc, char *argv[])
         divisor_difference *= 2;
     }
 
+    if (rank==0){
+        printf("%d\n", myArray[0]);                     //minimum
+        printf("%d\n", myArray[sizeMyArray-1]);         //maximum
+        if (sizeMyArray % 2 == 0){
+            int val1 = myArray[(sizeMyArray/2) - 1];
+            int val2 = myArray[((sizeMyArray/2)+1) - 1];
+            printf("%d\n", (val1+val2)/2);              //median
+        }else{
+            printf("%d\n",  myArray[((sizeMyArray+1)/2) - 1]);  //median
+        }
+        int sum = 0;
+        for (int i=0; i<sizeMyArray; i++){
+            sum += myArray[i];
+        }
+        printf("%d\n", sum/sizeMyArray);                //average
+    }
+
     MPI_Finalize();
 }
