@@ -180,6 +180,15 @@ int nearestPowerOf2(int n){
     return n;
 }
 
+long get_floored_mean(int *n, int length) {
+	long sum = 0;
+	for (int i = 0; i < length; i++) {
+		sum += n[i];
+	}
+
+	return sum / length;
+}
+
 int main(int argc, char *argv[])
 {
     int size;
@@ -263,7 +272,7 @@ int main(int argc, char *argv[])
     //     }
     // }
 
-    //TODO initate the value of myArray and sizeMyArray with the result of convolution. Array with one element i think.
+    //TODO initate the value of myArray and sizeMyArray with the result of convolution. 
 
     /* Sorting Logic Starts From Here!1!1!1! */
     
@@ -294,6 +303,8 @@ int main(int argc, char *argv[])
         myArray[1] = 100;
     }
 
+    double start, end;
+    start = MPI_Wtime();
     // start process
     while (divisor <= nearestPowerOf2(size)){ //size oerlu dibkin jd 8
         if (rank % divisor == 0){
@@ -355,6 +366,7 @@ int main(int argc, char *argv[])
         divisor_difference *= 2;
     }
 
+    end = MPI_Wtime();
     printf("This is process: %d\n", rank);
     if (rank==0){
         printf("%d\n", myArray[0]);                     //minimum
@@ -371,6 +383,10 @@ int main(int argc, char *argv[])
             sum += myArray[i];
         }
         printf("%d\n", sum/sizeMyArray);                //average
+        printf("Runtime=%f\n", end-start);
+        for (int i=0; i<sizeMyArray; i++){
+            printf("%d\n", myArray[i]);
+        }
     }
 
     MPI_Finalize();
@@ -393,3 +409,34 @@ int main(int argc, char *argv[])
 
                 // //sort array
                 // merge_sort(myArray, 0, sizeMyArray-1);
+
+// //merge while retain the sort
+//                 int totalSize = sizeMyArray + sizeOfRecvArray;
+//                 int idxMyArray = 0; int idxRecvArray = 0;
+//                 int* tempArray;
+//                 tempArray = (int *)malloc((totalSize)*sizeof(int));
+                
+//                 for (int i=0; i<totalSize; i++){
+//                     if (myArray[idxMyArray] <= arrayOfInt[idxRecvArray]){
+//                         if (idxMyArray < sizeMyArray){
+//                             tempArray[i] = myArray[idxMyArray];
+//                             idxMyArray += 1;
+//                         }else{
+//                             tempArray[i] = arrayOfInt[idxRecvArray];
+//                             idxRecvArray += 1;
+//                         }
+//                     }else{
+//                         if (idxRecvArray < sizeOfRecvArray){
+//                             tempArray[i] = arrayOfInt[idxRecvArray];
+//                             idxRecvArray += 1;
+//                         }else{
+//                             tempArray[i] = myArray[idxMyArray];
+//                             idxMyArray += 1;
+//                         }
+//                     }
+//                 }
+
+//                 free(myArray);
+//                 myArray = tempArray;
+//                 sizeMyArray = totalSize;
+//                 tempArray = NULL;
