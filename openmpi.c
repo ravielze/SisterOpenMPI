@@ -100,7 +100,7 @@ void compose_matrix(Matrix *m)
     {
         for (int j = 0; j < col_eff; j++)
         {
-            m->mat[i][j] = temp[pivot + (i * m->row_eff) + j + 1];
+            m->mat[i][j] = temp[pivot + (i * m->col_eff) + j + 1];
         }
     }
 }
@@ -120,7 +120,7 @@ void decompose_matrix(Matrix *m)
     {
         for (int j = 0; j < col_eff; j++)
         {
-            temp[pivot + (i * m->row_eff) + j + 1] = m->mat[i][j];
+            temp[pivot + (i * m->col_eff) + j + 1] = m->mat[i][j];
         }
     }
 }
@@ -193,6 +193,32 @@ void merge_sort(int *n, int left, int right) {
 
 		merge_array(n, left, mid, right);
 	}	
+}
+
+/* 
+ * Function get_median
+ *
+ * Returns median of array n of length
+ * */
+int get_median(int *n, int length) {
+	int mid = length / 2;
+	if (length & 1) return n[mid];
+
+	return (n[mid - 1] + n[mid]) / 2;
+}
+
+/* 
+ * Function get_floored_mean
+ *
+ * Returns floored mean from an array of integers
+ * */
+long get_floored_mean(int *n, int length) {
+	long sum = 0;
+	for (int i = 0; i < length; i++) {
+		sum += n[i];
+	}
+
+	return sum / length;
 }
 
 int nearestPowerOf2(int n){
@@ -308,11 +334,8 @@ int main(int argc, char *argv[])
             myArray[i] = maxArray[i] - minArray[i];
         }
 
-
         sizeMyArray = forMaster;
         merge_sort(myArray, 0, sizeMyArray-1);
-
-        //Nerima
     }
     else
     {
@@ -377,13 +400,10 @@ int main(int argc, char *argv[])
         for(int i=0; i < numTargets; i++){
             myArray[i] = maxArray[i] - minArray[i];
         }
-
         
         sizeMyArray = numTargets;
         merge_sort(myArray, 0, sizeMyArray-1);
     }
-
-    //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
 
     /* Sorting Logic Starts From Here!1!1!1! */
     
@@ -399,11 +419,11 @@ int main(int argc, char *argv[])
             if (rankPartner < size){    //check condition is the partner exist
                 //receive size of array
                 int sizeOfRecvArray;
-                MPI_Recv(&sizeOfRecvArray, 1, MPI_INT, rankPartner, 1, MPI_COMM_WORLD, 0);  //tag 1 only for differentiate this message to get size of array
+                MPI_Recv(&sizeOfRecvArray, 1, MPI_INT, rankPartner, 1, MPI_COMM_WORLD, 0);
                 
                 //receive array
                 int arrayOfInt[sizeOfRecvArray];
-                MPI_Recv(arrayOfInt, sizeOfRecvArray, MPI_INT, rankPartner, 2, MPI_COMM_WORLD, 0); //tag 2 only for differentiate this message to get the array
+                MPI_Recv(arrayOfInt, sizeOfRecvArray, MPI_INT, rankPartner, 2, MPI_COMM_WORLD, 0);
 
                 //merge while retain the sort
                 int totalSize = sizeMyArray + sizeOfRecvArray;
@@ -454,20 +474,10 @@ int main(int argc, char *argv[])
     clock_t end = clock();
 	time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     if (rank==0){
-        printf("%d\n", myArray[0]);                     //minimum
-        printf("%d\n", myArray[sizeMyArray-1]);         //maximum
-        if (sizeMyArray % 2 == 0){
-            int val1 = myArray[(sizeMyArray/2) - 1];
-            int val2 = myArray[((sizeMyArray/2)+1) - 1];
-            printf("%d\n", (val1+val2)/2);              //median
-        }else{
-            printf("%d\n",  myArray[((sizeMyArray+1)/2) - 1]);  //median
-        }
-        long long sum = 0;
-        for (int i=0; i<sizeMyArray; i++){
-            sum += myArray[i];
-        }
-        printf("%lld\n", sum/sizeMyArray);                //average
+        printf("Minimum:\t %d\n", myArray[0]);
+        printf("Maksimum:\t %d\n", myArray[sizeMyArray-1]);
+        printf("Median:\t\t %d\n",  get_median(myArray, sizeMyArray));
+        printf("Mean:\t\t %ld\n", get_floored_mean(myArray,sizeMyArray));
         printf("The elapsed time is %f seconds\n", time_spent);
     }
 
