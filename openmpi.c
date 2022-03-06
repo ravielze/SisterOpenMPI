@@ -100,7 +100,7 @@ void compose_matrix(Matrix *m)
     {
         for (int j = 0; j < col_eff; j++)
         {
-            m->mat[i][j] = temp[pivot + (i * m->row_eff) + j + 1];
+            m->mat[i][j] = temp[pivot + (i * m->col_eff) + j + 1];
         }
     }
 }
@@ -120,7 +120,7 @@ void decompose_matrix(Matrix *m)
     {
         for (int j = 0; j < col_eff; j++)
         {
-            temp[pivot + (i * m->row_eff) + j + 1] = m->mat[i][j];
+            temp[pivot + (i * m->col_eff) + j + 1] = m->mat[i][j];
         }
     }
 }
