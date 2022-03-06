@@ -9,6 +9,8 @@
 #define DATAMAX 1000
 #define DATAMIN -1000
 #define NUMTHREAD 5
+#define MAXINT 999999999
+#define MININT -999999999
 
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
@@ -268,11 +270,11 @@ int main(int argc, char *argv[])
         int* minArray = (int *)malloc((forMaster) * sizeof(int));
         int* maxArray = (int *)malloc((forMaster) * sizeof(int));
 
-        for (int i=0; i<numTargets; i++){
-            minArray[i] = DATAMAX;
-            maxArray[i] = DATAMIN;
+        for (int i=0; i<forMaster; i++){
+            minArray[i] = MAXINT;
+            maxArray[i] = MININT;
         }
-        // # pragma omp parallel for num_threads(5)
+        # pragma omp parallel for num_threads(5)
         for (int kij = 0; kij < forMaster * out_row_eff * out_col_eff; kij++)
         {
             int k = kij / out_row_eff / out_col_eff;
@@ -281,9 +283,9 @@ int main(int argc, char *argv[])
 
             int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
 
-            // # pragma omp critical
+            # pragma omp critical
             minArray[k] = min(res, minArray[k]);
-            // # pragma omp critical
+            # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
 
@@ -328,11 +330,11 @@ int main(int argc, char *argv[])
         int* maxArray = (int *)malloc((numTargets) * sizeof(int));
 
         for (int i=0; i<numTargets; i++){
-            minArray[i] = DATAMAX;
-            maxArray[i] = DATAMIN;
+            minArray[i] = MAXINT;
+            maxArray[i] = MININT;
         }
         
-        // # pragma omp parallel for num_threads(NUMTHREAD)
+        # pragma omp parallel for num_threads(NUMTHREAD)
         for (int kij = 0; kij < numTargets * out_row_eff * out_col_eff; kij++)
         {
             int k = kij / out_row_eff / out_col_eff;
@@ -340,9 +342,9 @@ int main(int argc, char *argv[])
             int j = kij % out_col_eff;
 
             int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
-            // # pragma omp critical
+            # pragma omp critical
             minArray[k] = min(res, minArray[k]);
-            // # pragma omp critical
+            # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
 
@@ -435,11 +437,11 @@ int main(int argc, char *argv[])
         }else{
             printf("%d\n",  myArray[((sizeMyArray+1)/2) - 1]);  //median
         }
-        int sum = 0;
+        long long sum = 0;
         for (int i=0; i<sizeMyArray; i++){
             sum += myArray[i];
         }
-        printf("%d\n", sum/sizeMyArray);                //average
+        printf("%lld\n", sum/sizeMyArray);                //average
         printf("The elapsed time is %f seconds\n", time_spent);
     }
 
