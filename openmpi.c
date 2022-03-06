@@ -260,22 +260,30 @@ int main(int argc, char *argv[])
 
         int out_row_eff, out_col_eff;
         if(forMaster > 0){
-            out_row_eff = kernelMatrix[i].row_eff - inputMatrix.row_eff[i] + 1;
-            out_col_eff = kernelMatrix[i].col_eff - inputMatrix.col_eff[i] + 1;
+            out_row_eff = kernelMatrix[0].row_eff - inputMatrix.row_eff + 1;
+            out_col_eff = kernelMatrix[0].col_eff - inputMatrix.col_eff + 1;
         }
 
         myArray = (int *)malloc((forMaster)*sizeof(int));
         int* minArray = (int *)malloc((forMaster) * sizeof(int));
         int* maxArray = (int *)malloc((forMaster) * sizeof(int));
+
+        for (int i=0; i<numTargets; i++){
+            minArray[i] = DATAMAX;
+            maxArray[i] = DATAMIN;
+        }
         // # pragma omp parallel for num_threads(5)
         for (int kij = 0; kij < forMaster * out_row_eff * out_col_eff; kij++)
         {
             int k = kij / out_row_eff / out_col_eff;
             int i = (kij / out_col_eff) % out_row_eff;
-            int j = kij % (out_row_eff * out_col_eff);
+            int j = kij % out_col_eff;
 
             int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+
+            // # pragma omp critical
             minArray[k] = min(res, minArray[k]);
+            // # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
 
@@ -311,23 +319,30 @@ int main(int argc, char *argv[])
         //printf("=======================================\n");
         int out_row_eff, out_col_eff;
         if(numTargets > 0){
-            out_row_eff = kernelMatrix[i].row_eff - inputMatrix.row_eff[i] + 1;
-            out_col_eff = kernelMatrix[i].col_eff - inputMatrix.col_eff[i] + 1;
+            out_row_eff = kernelMatrix[0].row_eff - inputMatrix.row_eff + 1;
+            out_col_eff = kernelMatrix[0].col_eff - inputMatrix.col_eff + 1;
         }
         
         myArray = (int *)malloc((numTargets)*sizeof(int));
         int* minArray = (int *)malloc((numTargets) * sizeof(int));
         int* maxArray = (int *)malloc((numTargets) * sizeof(int));
+
+        for (int i=0; i<numTargets; i++){
+            minArray[i] = DATAMAX;
+            maxArray[i] = DATAMIN;
+        }
         
-        # pragma omp parallel for num_threads(NUMTHREAD)
+        // # pragma omp parallel for num_threads(NUMTHREAD)
         for (int kij = 0; kij < numTargets * out_row_eff * out_col_eff; kij++)
         {
             int k = kij / out_row_eff / out_col_eff;
             int i = (kij / out_col_eff) % out_row_eff;
-            int j = kij % (out_row_eff * out_col_eff);
+            int j = kij % out_col_eff;
 
             int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+            // # pragma omp critical
             minArray[k] = min(res, minArray[k]);
+            // # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
 
@@ -388,7 +403,6 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                free(myArray);
                 myArray = tempArray;
                 sizeMyArray = totalSize;
                 tempArray = NULL;
