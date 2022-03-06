@@ -19,32 +19,32 @@ Terdapat 5 test case (termasuk TC pada docs tubes) yang diberikan pada spesifika
 Dari segi hasil, kami mendapati program paralel kami menghasilkan nilai yang sama dengan program serial. Meskipun demikian, kami pernah mengalami perbedaan, tentunya apabila tidak diberikan beberapa batasan pada parameter pragma jika di dalamnya terdapat variabel yang dapat diakses lebih dari satu thread sekaligus. Sebelum solusi yang sekarang diberikan reduction, karena blok kode max/min terdiri dari 2 operasi yakni compare dan assign, bisa saja saat dijalankan 2 thread sekaligus akan terjadi perbedaan hasil akhir yang tertimpa karena tidak atomik. Misalkan var shared = 1, thread 1 sedang menghitung max(shared,3), sementara thread 2 max(shared, 2), ketika mulai, kedua thread akan masuk ke assigning karena 2,3 > 1, namun bila thread 2 selesai lebih lama, shared akan bernilai 2 sehingga salah. Reduksi yang dilakukan program kita hanya pada max/min karena penjumlahan konvolusi tidak kami paralelkan (berjalan pada maximal 1 thread). Proses sorting juga tidak mungkin menghasilkan perbedaan hasil karena setiap saatnya tidak ada variabel yang dapat diakses 2 node sekaligus.
 
 ## Variasi Parameter Node dan Thread
-| TC | Node | Thread | Time |
-|----|------|--------|------|
-|  1 |   2  |    5   | kekw |
-|  1 |   2  |   16   | kekw |
-|  1 |   3  |    5   | kekw |
-|  1 |   3  |   16   | kekw |
-|  1 |   4  |    5   | kekw |
-|  1 |   4  |   16   | kekw |
-|  2 |   2  |    5   | kekw |
-|  2 |   2  |   16   | kekw |
-|  2 |   3  |    5   | kekw |
-|  2 |   3  |   16   | kekw |
-|  2 |   4  |    5   | kekw |
-|  2 |   4  |   16   | kekw |
-|  3 |   2  |    5   | kekw |
-|  3 |   2  |   16   | kekw |
-|  3 |   3  |    5   | kekw |
-|  3 |   3  |   16   | kekw |
-|  3 |   4  |    5   | kekw |
-|  3 |   4  |   16   | kekw |
-|  4 |   2  |    5   | kekw |
-|  4 |   2  |   16   | kekw |
-|  4 |   3  |    5   | kekw |
-|  4 |   3  |   16   | kekw |
-|  4 |   4  |    5   | kekw |
-|  4 |   4  |   16   | kekw |
+| TC | Node | Thread |   Time   |
+|----|------|--------|----------|
+|  1 |   2  |    5   | 0.018965 |
+|  1 |   2  |   16   | 0.018403 |
+|  1 |   3  |    5   | 0.028222 |
+|  1 |   3  |   16   | 0.028862 |
+|  1 |   4  |    5   | 0.033333 |
+|  1 |   4  |   16   | 0.143552 |
+|  2 |   2  |    5   | 0.617713 |
+|  2 |   2  |   16   | 0.625250 |
+|  2 |   3  |    5   | 0.432420 |
+|  2 |   3  |   16   | 0.442991 |
+|  2 |   4  |    5   | 0.335820 |
+|  2 |   4  |   16   | 0.469933 |
+|  3 |   2  |    5   | 0.581831 |
+|  3 |   2  |   16   | 0.588090 |
+|  3 |   3  |    5   | 1.225156 |
+|  3 |   3  |   16   | 0.819680 |
+|  3 |   4  |    5   | 0.394746 |
+|  3 |   4  |   16   | 0.415618 |
+|  4 |   2  |    5   | 8.986783 |
+|  4 |   2  |   16   | 8.919745 |
+|  4 |   3  |    5   | 6.302404 |
+|  4 |   3  |   16   | 6.315424 |
+|  4 |   4  |    5   | 8.260329 |
+|  4 |   4  |   16   | 7.885514 |
 
 ## Analisa Waktu Eksekusi
 
