@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <omp.h>
 
 #define NMAX 100
 #define MATRIXNSEND 10002
@@ -111,6 +112,62 @@ void decompose_matrix(Matrix *m)
             temp[pivot + (i * m->row_eff) + j + 1] = m->mat[i][j];
         }
     }
+}
+
+/* 
+ * Function get_matrix_datarange
+ *
+ * Returns the range between maximum and minimum
+ * element of a matrix
+ * */
+int get_matrix_datarange(Matrix *m) {
+	int max = DATAMIN;
+	int min = DATAMAX;
+    # pragma omp parallel for num_threads(5) \ private(max, min)
+	for (int ij = 0; ij < m->row_eff * m->col_eff; ij++) {
+        int el = m->mat[ij / m->col_eff][ij % m->col_eff];
+        if (el > max) max = el;
+        if (el < min) min = el;
+	}
+
+	return max - min;
+}
+/*
+ * Function supression_op
+ *
+ * Returns the sum of intermediate value of special multiplication
+ * operation where kernel[0][0] corresponds to target[row][col]
+ * */
+int supression_op(Matrix *kernel, Matrix *target, int row, int col) {
+	int intermediate_sum = 0;
+	for (int i = 0; i < kernel->row_eff; i++) {
+		for (int j = 0; j < kernel->col_eff; j++) {
+			intermediate_sum += kernel->mat[i][j] * target->mat[row + i][col + j];
+		}
+	}
+
+	return intermediate_sum;
+}
+/* 
+ * Function convolution
+ *
+ * Return the output matrix of convolution operation
+ * between kernel and target
+ * */
+Matrix convolution(Matrix *kernel, Matrix *target) {
+	Matrix out;
+	int out_row_eff = target->row_eff - kernel->row_eff + 1;
+	int out_col_eff = target->col_eff - kernel->col_eff + 1;
+	
+	init_matrix(&out, out_row_eff, out_col_eff);
+
+    # pragma omp parallel for num_threads(5)
+	for (int ij = 0; ij < out.row_eff * out.col_eff; ij++) {
+		int i = ij/out.col_eff, j=ij%out.col_eff;
+		out.mat[i][j] = supression_op(kernel, target, i, j);
+	}
+
+	return out;
 }
 
 /*
@@ -231,7 +288,13 @@ int main(int argc, char *argv[])
         {
             // Do kerjaan master
             // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
+            convolution(&inputMatrix, kernelMatrix + i);
+            myArray[i] = get_matrix_datarange(kernelMatrix + i);
         }
+        sizeMyArray = forMaster;
+        sort(size(myArray, myArray + sizeMyArray));
+
+        //Nerima
     }
     else
     {
@@ -255,7 +318,11 @@ int main(int argc, char *argv[])
         {
             // Do kerjaan slave
             // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
+            convolution(&inputMatrix, kernelMatrix + i);
+            myArray[i] = get_matrix_datarange(kernelMatrix + i);
         }
+        sizeMyArray = forMaster;
+        sort(size(myArray, myArray + sizeMyArray));
     }
 
     //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
