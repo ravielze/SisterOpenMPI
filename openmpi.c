@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include <omp.h>
+#include <time.h>
 
 #define NMAX 100
 #define MATRIXNSEND 10002
@@ -212,6 +213,9 @@ int main(int argc, char *argv[])
     int* myArray;
     int sizeMyArray=0;
 
+    double time_spent = 0.0;
+    clock_t begin;
+
     if (rank == 0)
     {
         int inputRow, inputCol;
@@ -234,6 +238,7 @@ int main(int argc, char *argv[])
         // Jadi numTargets bakal dibagi bersama size
         // Trus kerjaan per slave itu floornya, sedangkan kerjaan master sisanya
 
+        begin = clock();
         for (int i = 1; i < size; i++)
         {
             decompose_matrix(&inputMatrix);
@@ -250,16 +255,14 @@ int main(int argc, char *argv[])
             }
         }
 
-        printf("=======================================\n");
         myArray = (int *)malloc((forMaster)*sizeof(int));
-        # pragma omp parallel for num_threads(5)
+        // # pragma omp parallel for num_threads(5)
         for (int i = 0; i < forMaster; i++)
         {
             // Do kerjaan master
             // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
             Matrix result = convolution(&inputMatrix, kernelMatrix + i);
             myArray[i] = get_matrix_datarange(&result);
-            printf("rank: %d, nilai: %d\n", rank, myArray[i]);
         }
         sizeMyArray = forMaster;
         merge_sort(myArray, 0, sizeMyArray-1);
@@ -277,7 +280,6 @@ int main(int argc, char *argv[])
         MPI_Recv(&numTargets, 1, MPI_INT, 0, 11, MPI_COMM_WORLD, 0);
         kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
 
-        //printf("numtargets: %d\n", numTargets);
         
         for (int i = 0; i < numTargets; i++)
         {
@@ -317,7 +319,6 @@ int main(int argc, char *argv[])
         sizeMyArray = numTargets;
         merge_sort(myArray, 0, sizeMyArray-1);
     }
-    MPI_Barrier(MPI_COMM_WORLD);
 
     //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
 
@@ -388,6 +389,8 @@ int main(int argc, char *argv[])
         divisor_difference *= 2;
     }
 
+    clock_t end = clock();
+	time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     if (rank==0){
         printf("%d\n", myArray[0]);                     //minimum
         printf("%d\n", myArray[sizeMyArray-1]);         //maximum
@@ -403,6 +406,7 @@ int main(int argc, char *argv[])
             sum += myArray[i];
         }
         printf("%d\n", sum/sizeMyArray);                //average
+        printf("The elapsed time is %f seconds\n", time_spent);
     }
 
     MPI_Finalize();
