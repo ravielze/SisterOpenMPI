@@ -274,6 +274,20 @@ int main(int argc, char *argv[])
             minArray[i] = MAXINT;
             maxArray[i] = MININT;
         }
+        
+        for (int k = 0; k < forMaster; k++)
+        {
+            for(int i=0; i<out_row_eff; i++){
+                for(int j=0; j<out_col_eff; j++){
+                    int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+                    minArray[k] = min(res, minArray[k]);
+                    maxArray[k] = max(res, maxArray[k]);
+                }
+            }
+        }
+
+
+        /*
         # pragma omp parallel for num_threads(5)
         for (int kij = 0; kij < forMaster * out_row_eff * out_col_eff; kij++)
         {
@@ -288,6 +302,7 @@ int main(int argc, char *argv[])
             # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
+        */
 
         for(int i=0; i < forMaster; i++){
             myArray[i] = maxArray[i] - minArray[i];
@@ -333,7 +348,18 @@ int main(int argc, char *argv[])
             minArray[i] = MAXINT;
             maxArray[i] = MININT;
         }
-        
+
+        for (int k = 0; k < numTargets; k++)
+        {
+            for(int i=0; i<out_row_eff; i++){
+                for(int j=0; j<out_col_eff; j++){
+                    int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+                    minArray[k] = min(res, minArray[k]);
+                    maxArray[k] = max(res, maxArray[k]);
+                }
+            }
+        }
+        /*
         # pragma omp parallel for num_threads(NUMTHREAD)
         for (int kij = 0; kij < numTargets * out_row_eff * out_col_eff; kij++)
         {
@@ -347,6 +373,7 @@ int main(int argc, char *argv[])
             # pragma omp critical
             maxArray[k] = max(res, maxArray[k]);
         }
+        */
 
         for(int i=0; i < numTargets; i++){
             myArray[i] = maxArray[i] - minArray[i];
