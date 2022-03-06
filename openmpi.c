@@ -127,7 +127,8 @@ void decompose_matrix(Matrix *m)
 int get_matrix_datarange(Matrix *m) {
 	int max = DATAMIN;
 	int min = DATAMAX;
-    # pragma omp parallel for num_threads(5) private(max, min)
+    print_matrix(m);
+    // # pragma omp parallel for num_threads(5) private(max, min)
 	for (int ij = 0; ij < m->row_eff * m->col_eff; ij++) {
         int el = m->mat[ij / m->col_eff][ij % m->col_eff];
         if (el > max) max = el;
@@ -165,7 +166,7 @@ Matrix convolution(Matrix *kernel, Matrix *target) {
 	
 	init_matrix(&out, out_row_eff, out_col_eff);
 
-    # pragma omp parallel for num_threads(5)
+    // # pragma omp parallel for num_threads(5)
 	for (int ij = 0; ij < out.row_eff * out.col_eff; ij++) {
 		int i = ij/out.col_eff, j=ij%out.col_eff;
 		out.mat[i][j] = supression_op(kernel, target, i, j);
@@ -276,58 +277,70 @@ int main(int argc, char *argv[])
         {
             decompose_matrix(&inputMatrix);
             // kasih input matrix ke slavenya
-            MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 10, MPI_COMM_WORLD);
             // kasih tau jumlah kerjaan ke slavenya
-            MPI_Send(&forEachSlave, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+            MPI_Send(&forEachSlave, 1, MPI_INT, i, 11, MPI_COMM_WORLD);
 
             for (int j = 0; j < forEachSlave; j++)
             {
                 decompose_matrix(&(kernelMatrix[j + (i - 1) * forEachSlave + forMaster]));
                 // kasih tau matrix kernel kerjaan ke j ke slavenya
-                MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 0, MPI_COMM_WORLD);
+                MPI_Send(temp, MATRIXNSEND, MPI_INT, i, 12, MPI_COMM_WORLD);
             }
         }
 
+        printf("=======================================\n");
+        myArray = (int *)malloc((forMaster)*sizeof(int));
+        # pragma omp parallel for num_threads(5)
         for (int i = 0; i < forMaster; i++)
         {
             // Do kerjaan master
             // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
-            convolution(&inputMatrix, kernelMatrix + i);
-            myArray[i] = get_matrix_datarange(kernelMatrix + i);
+            Matrix result = convolution(&inputMatrix, kernelMatrix + i);
+            myArray[i] = get_matrix_datarange(&result);
+            printf("rank: %d, nilai: %d\n", rank, myArray[i]);
         }
         sizeMyArray = forMaster;
-        sort(myArray, myArray + sizeMyArray);
+        merge_sort(myArray, 0, sizeMyArray-1);
 
         //Nerima
     }
     else
     {
         // Dapetin matrix input dari master
-        MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+        MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 10, MPI_COMM_WORLD, 0);
         compose_matrix(&inputMatrix);
 
         int numTargets;
         // minta jumlah kerjaan dari master
-        MPI_Recv(&numTargets, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+        MPI_Recv(&numTargets, 1, MPI_INT, 0, 11, MPI_COMM_WORLD, 0);
         kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
 
+        printf("numtargets: %d\n", numTargets);
         for (int i = 0; i < numTargets; i++)
         {
             // minta matrix kernel dari master
-            MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 0, MPI_COMM_WORLD, 0);
+            MPI_Recv(temp, MATRIXNSEND, MPI_INT, 0, 12, MPI_COMM_WORLD, 0);
             compose_matrix(&(kernelMatrix[i]));
         }
 
+        printf("=======================================\n");
+        myArray = (int *)malloc((numTargets)*sizeof(int));
+        # pragma omp parallel for num_threads(5)
         for (int i = 0; i < numTargets; i++)
         {
             // Do kerjaan slave
             // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
-            convolution(&inputMatrix, kernelMatrix + i);
-            myArray[i] = get_matrix_datarange(kernelMatrix + i);
+            Matrix result = convolution(&inputMatrix, kernelMatrix + i);
+            myArray[i] = get_matrix_datarange(&result);
+            print_matrix(&inputMatrix);
+            printf("rank: %d, nilai: %d\n", rank, myArray[i]);
         }
+        
         sizeMyArray = numTargets;
-        sort(myArray, myArray + sizeMyArray);
+        merge_sort(myArray, 0, sizeMyArray-1);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
 
