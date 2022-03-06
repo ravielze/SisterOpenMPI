@@ -318,7 +318,6 @@ int main(int argc, char *argv[])
             compose_matrix(&(kernelMatrix[i]));
         }
 
-        //printf("=======================================\n");
         int out_row_eff, out_col_eff;
         if(numTargets > 0){
             out_row_eff = kernelMatrix[0].row_eff - inputMatrix.row_eff + 1;
