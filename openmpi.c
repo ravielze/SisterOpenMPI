@@ -7,6 +7,7 @@
 #define MATRIXNSEND 10002
 #define DATAMAX 1000
 #define DATAMIN -1000
+#define NUMTHREAD 5
 
 /*
  * Struct Matrix
@@ -118,25 +119,6 @@ void decompose_matrix(Matrix *m)
     }
 }
 
-/* 
- * Function get_matrix_datarange
- *
- * Returns the range between maximum and minimum
- * element of a matrix
- * */
-int get_matrix_datarange(Matrix *m) {
-	int max = DATAMIN;
-	int min = DATAMAX;
-    print_matrix(m);
-    // # pragma omp parallel for num_threads(5) private(max, min)
-	for (int ij = 0; ij < m->row_eff * m->col_eff; ij++) {
-        int el = m->mat[ij / m->col_eff][ij % m->col_eff];
-        if (el > max) max = el;
-        if (el < min) min = el;
-	}
-
-	return max - min;
-}
 /*
  * Function supression_op
  *
@@ -152,27 +134,6 @@ int supression_op(Matrix *kernel, Matrix *target, int row, int col) {
 	}
 
 	return intermediate_sum;
-}
-/* 
- * Function convolution
- *
- * Return the output matrix of convolution operation
- * between kernel and target
- * */
-Matrix convolution(Matrix *kernel, Matrix *target) {
-	Matrix out;
-	int out_row_eff = target->row_eff - kernel->row_eff + 1;
-	int out_col_eff = target->col_eff - kernel->col_eff + 1;
-	
-	init_matrix(&out, out_row_eff, out_col_eff);
-
-    // # pragma omp parallel for num_threads(5)
-	for (int ij = 0; ij < out.row_eff * out.col_eff; ij++) {
-		int i = ij/out.col_eff, j=ij%out.col_eff;
-		out.mat[i][j] = supression_op(kernel, target, i, j);
-	}
-
-	return out;
 }
 
 /*
@@ -316,7 +277,8 @@ int main(int argc, char *argv[])
         MPI_Recv(&numTargets, 1, MPI_INT, 0, 11, MPI_COMM_WORLD, 0);
         kernelMatrix = (Matrix *)malloc(numTargets * sizeof(Matrix));
 
-        printf("numtargets: %d\n", numTargets);
+        //printf("numtargets: %d\n", numTargets);
+        
         for (int i = 0; i < numTargets; i++)
         {
             // minta matrix kernel dari master
@@ -324,18 +286,33 @@ int main(int argc, char *argv[])
             compose_matrix(&(kernelMatrix[i]));
         }
 
-        printf("=======================================\n");
-        myArray = (int *)malloc((numTargets)*sizeof(int));
-        # pragma omp parallel for num_threads(5)
-        for (int i = 0; i < numTargets; i++)
-        {
-            // Do kerjaan slave
-            // KernelMatrix buat slave ini itu kernelMatrix[0] sampai kernelMatrix[numTargets-1] atau sejumlah numTargets
-            Matrix result = convolution(&inputMatrix, kernelMatrix + i);
-            myArray[i] = get_matrix_datarange(&result);
-            print_matrix(&inputMatrix);
-            printf("rank: %d, nilai: %d\n", rank, myArray[i]);
+        //printf("=======================================\n");
+        int out_row_eff, out_col_eff;
+        if(numTargets > 0){
+            out_row_eff = kernelMatrix[i].row_eff - inputMatrix.row_eff[i] + 1;
+            out_col_eff = kernelMatrix[i].col_eff - inputMatrix.col_eff[i] + 1;
         }
+        
+        myArray = (int *)malloc((numTargets)*sizeof(int));
+        int* minArray = (int *)malloc((numTargets) * sizeof(int));
+        int* maxArray = (int *)malloc((numTargets) * sizeof(int));
+        
+        # pragma omp parallel for num_threads(NUMTHREAD)
+        for (int kij = 0; kij < numTargets * out_row_eff * out_col_eff; kij++)
+        {
+            int k = kij / out_row_eff / out_col_eff;
+            int i = (kij / out_col_eff) % out_row_eff;
+            int j = kij % (out_row_eff * out_col_eff);
+
+            int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+            minArray[k] = min(res, minArray[k]);
+            maxArray[k] = max(res, maxArray[k]);
+        }
+
+        for(int i=0; i < numTargets; i++){
+            myArray[i] = maxArray[i] - minArray[i];
+        }
+
         
         sizeMyArray = numTargets;
         merge_sort(myArray, 0, sizeMyArray-1);
