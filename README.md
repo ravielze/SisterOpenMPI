@@ -12,7 +12,7 @@ Garis besar kerja program adalah master node akan menerima inputan terlebih dahu
 
 Terdapat 5 test case (termasuk TC pada docs tubes) yang diberikan pada spesifikasi tugas. TC 0 sampai 4 memiliki ukuran kasar (estimasi) berturut-turut (2, 3, 3), (5, 33, 36), (15, 100, 100), (100, 666, 50), (24, 5000, 50), degan masing masing triplet menyatakan ukuran kernel, banyak input, dan ukuran matrix input. Cek kompleksitas sederhana, apabila 3 komponen triplet di atas dimisalkan (x,y,z), maka proram ini memiliki kompleksitas O(x*x*y*z*z + y log(y)). Pada eksekusi program di perangkat lokal dengan spesifikasi (
     ISI MAS TITO
-), kami mendapati bahwa program paralel kami lebih cepat baru pada eksekusi TC2 dengan 3 node dan 5 thread. Sebetulnya hal ini masih dalam ekspektasi kami, karena pada TC yang kecil, cost yang dibutuhkan untuk membagi dan komunikasi secara umum antar node, serta inisiasi thread, tidak sepadan dengan keuntungan yang didapat dari pekerjaan yang dilakukan 2 sampai 4 kali lipat lebih cepat hanya pada sebagian kecil dari proses penghitungan. Speedup yang dirasakan semakin signifikan seiring naiknya kompleksitas dan ukuran TC. Penghitungan singkat kompleksitas program apabila dijalankan dengan n node dan t thread adalah O(xxyzz/nt + ylog(y)/n), tentunya mengabaikan konstanta "cold start" threading dan komunikasi antar thread.
+), kami mendapati bahwa program paralel kami lebih cepat baru pada eksekusi TC2 dengan 3 node dan 5 thread. Sebetulnya hal ini masih dalam ekspektasi kami, karena pada TC yang kecil, cost yang dibutuhkan untuk membagi dan komunikasi secara umum antar node, serta inisiasi thread, tidak sepadan dengan keuntungan yang didapat dari pekerjaan yang dilakukan 2 sampai 4 kali lipat lebih cepat hanya pada sebagian kecil dari proses penghitungan. Speedup yang dirasakan semakin signifikan seiring naiknya kompleksitas dan ukuran TC. Penghitungan singkat kompleksitas program apabila dijalankan dengan n node dan t thread adalah O(xxyzz/nt + ylog(y)/n), tentunya mengabaikan konstanta "cold start" threading dan komunikasi antar thread. Sehingga dapat diperkirakan faktor speedup antara n hingga nt yang semakin jelas terlihat seiring bertambah besarnya orde x,y,z, tentunya bergantung juga pada perbandingan y dengan variabel lain.
 
 ## Perbedaan Hasil Program Paralel dan Program Serial
 
@@ -47,6 +47,14 @@ Dari segi hasil, kami mendapati program paralel kami menghasilkan nilai yang sam
 |  4 |   4  |   16   | kekw |
 
 ## Analisa Waktu Eksekusi
+
+Berikut akan dibandingkan perbedaan waktu eksekusi program paralel dengan berbagai parameter, tidak dibandingkan dengan serial.
+
+Jika dilihat dari perbedaan node, terlihat tren yakni penambahan node mempengaruhi waktu eksekusi secara signifikan pada TC, terutama yang berbobot cukup besar. Hal ini membuktikan bahwa hipotesis kompleksitas algoritma yang memiliki faktor speedup antara n dan nt, keduanya dipengaruhi n sebagai jumlah node.
+
+Jika dilihat dari perbedaan thread, sebenarnya tidak terlalu terlihat pengaruh signifikan. Perbedaan dengan pengaruh node ini dapat dikatakan mendukung bahwa kompleksitas algoritma suku ylog(y), yang tidak memiliki faktor speedup t, lebih berbobot dari xxyzz, yang dicerminkan dari TC4 dengan jumlah matrix (y) yang dibengkakkan (dari TC123). Hal yang perlu diperhatikan juga ialah speedup dari perbanyakan thread di suatu TC dengan jumlah node n, dapat juga bersifat slowdown bila jumlah node lebih dari n. Ini karena karena beban kerja yang dikerjakan masing-masing node berkurang sehingga cost bottleneck yang dirasakan setiap node saat inisialisasi thread lebih berasa jika task yang dibagi lebih kecil.
+
+Jika dilihat dari perubahan TC, terlihat bahwa terdapat tren dimana TC1 sangat cepat, TC 2 dan 3 serupa namun cenderung lebih cepat pengerjaan 3, serta TC4 yang paling lama. Hal ini, terutama TC2 lebih lama dari TC3, sangat mendukung hipotesis kompleksitas algoritma kami lagi. Ini karena TC2 dan 3 memiliki (x,y,z) = (15, 100, 100), (10, 666, 50). Nilai y yang membengkak pada TC2->3 menyeimbangi x dan z yang turun. Karena derajat x dan z lebih tinggi juga (kuadrat), maka rasio yang rasanya 1:2 dapat mengimbangi pembengkakan y.
 
 ## Author:
 13519002 - Steven Nataniel Kodyat
