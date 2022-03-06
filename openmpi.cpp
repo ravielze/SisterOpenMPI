@@ -87,6 +87,8 @@ void compose_matrix(Matrix *m)
 {
     m->row_eff = temp[0];
     m->col_eff = temp[1];
+    int row_eff = m->row_eff;
+    int col_eff = m->col_eff;
     for (int i = 0; i < row_eff; i++)
     {
         for (int j = 0; j < col_eff; j++)
@@ -104,6 +106,8 @@ void decompose_matrix(Matrix *m)
     }
     temp[0] = m->row_eff;
     temp[1] = m->col_eff;
+    int row_eff = m->row_eff;
+    int col_eff = m->col_eff;
 
     for (int i = 0; i < row_eff; i++)
     {
@@ -123,7 +127,7 @@ void decompose_matrix(Matrix *m)
 int get_matrix_datarange(Matrix *m) {
 	int max = DATAMIN;
 	int min = DATAMAX;
-    # pragma omp parallel for num_threads(5) \ private(max, min)
+    # pragma omp parallel for num_threads(5) private(max, min)
 	for (int ij = 0; ij < m->row_eff * m->col_eff; ij++) {
         int el = m->mat[ij / m->col_eff][ij % m->col_eff];
         if (el > max) max = el;
@@ -292,7 +296,7 @@ int main(int argc, char *argv[])
             myArray[i] = get_matrix_datarange(kernelMatrix + i);
         }
         sizeMyArray = forMaster;
-        sort(size(myArray, myArray + sizeMyArray));
+        sort(myArray, myArray + sizeMyArray);
 
         //Nerima
     }
@@ -321,8 +325,8 @@ int main(int argc, char *argv[])
             convolution(&inputMatrix, kernelMatrix + i);
             myArray[i] = get_matrix_datarange(kernelMatrix + i);
         }
-        sizeMyArray = forMaster;
-        sort(size(myArray, myArray + sizeMyArray));
+        sizeMyArray = numTargets;
+        sort(myArray, myArray + sizeMyArray);
     }
 
     //TODO initate the value of myArray and sizeMyArray with the result of convolution operations. make sure the myArray is sorted (could use merge sort)
