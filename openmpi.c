@@ -10,6 +10,9 @@
 #define DATAMIN -1000
 #define NUMTHREAD 5
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
+
 /*
  * Struct Matrix
  *
@@ -255,15 +258,32 @@ int main(int argc, char *argv[])
             }
         }
 
-        myArray = (int *)malloc((forMaster)*sizeof(int));
-        // # pragma omp parallel for num_threads(5)
-        for (int i = 0; i < forMaster; i++)
-        {
-            // Do kerjaan master
-            // KernelMatrix buat master itu kernelMatrix[0] sampai kernelMatrix[forMaster-1] atau sejumlah forMaster
-            Matrix result = convolution(&inputMatrix, kernelMatrix + i);
-            myArray[i] = get_matrix_datarange(&result);
+        int out_row_eff, out_col_eff;
+        if(forMaster > 0){
+            out_row_eff = kernelMatrix[i].row_eff - inputMatrix.row_eff[i] + 1;
+            out_col_eff = kernelMatrix[i].col_eff - inputMatrix.col_eff[i] + 1;
         }
+
+        myArray = (int *)malloc((forMaster)*sizeof(int));
+        int* minArray = (int *)malloc((forMaster) * sizeof(int));
+        int* maxArray = (int *)malloc((forMaster) * sizeof(int));
+        // # pragma omp parallel for num_threads(5)
+        for (int kij = 0; kij < forMaster * out_row_eff * out_col_eff; kij++)
+        {
+            int k = kij / out_row_eff / out_col_eff;
+            int i = (kij / out_col_eff) % out_row_eff;
+            int j = kij % (out_row_eff * out_col_eff);
+
+            int res = supression_op(&inputMatrix, kernelMatrix + k, i, j);
+            minArray[k] = min(res, minArray[k]);
+            maxArray[k] = max(res, maxArray[k]);
+        }
+
+        for(int i=0; i < forMaster; i++){
+            myArray[i] = maxArray[i] - minArray[i];
+        }
+
+
         sizeMyArray = forMaster;
         merge_sort(myArray, 0, sizeMyArray-1);
 
